@@ -11,8 +11,15 @@ RUN apk --no-cache add git build-base bash
 ENV GO111MODULE=on \
     CGO_ENABLED=0
 
-ARG VERSION=2025.1.1
-RUN git clone https://github.com/cloudflare/cloudflared --depth=1 --branch ${VERSION} .
+# 动态获取最新版本并克隆对应标签
+RUN LATEST_VERSION=$(git ls-remote --tags https://github.com/cloudflare/cloudflared \
+    | awk -F/ '{print $3}' \
+    | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+    | sort -V \
+    | tail -n1) && \
+    git clone https://github.com/cloudflare/cloudflared \
+    --depth=1 --branch "${LATEST_VERSION}" .
+
 RUN bash -x .teamcity/install-cloudflare-go.sh
 
 # From this point on, step(s) are duplicated per-architecture
